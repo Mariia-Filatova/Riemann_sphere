@@ -412,6 +412,38 @@
             color: var(--accent-color);                       /* Выделение ключевых терминов акцентным цветом */
         }
 
+       /* Адаптация под узкие экраны смартфонов (на компьютере не срабатывает) */
+        @media (max-width: 1050px) {
+            body {
+                margin: 8px;
+            }
+            .workspace {
+                flex-direction: column;
+                align-items: center;
+            }
+            .workspace > div {
+                width: 100%;
+                max-width: 740px;
+                box-sizing: border-box;
+            }
+            .palette {
+                width: 100%;
+                max-width: 740px;
+                box-sizing: border-box;
+            }
+            #scene {
+                width: 100%;
+                height: auto;
+                box-sizing: border-box;
+            }
+            .panel {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            footer {
+                margin-top: 24px !important;
+            }
+        }
     </style>
 </head>
 
