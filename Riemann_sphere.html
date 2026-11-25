@@ -1,0 +1,1607 @@
+<!--
+================================================================================
+  ПРОГРАММНЫЙ МОДУЛЬ ПО ТЕОРИИ ФУНКЦИЙ КОМПЛЕКСНОГО ПЕРЕМЕННОГО (ТФКП)
+  Интерактивная 3D-визуализация Сферы Римана и стереографической проекции
+
+  Автор: Филатова Мария Александровна
+  Организация: ИММ УрО РАН (г. Екатеринбург)
+  Год создания: 2026 г.
+  Назначение: интерактивная визуализация модели расширенной комплексной плоскости, 
+              демонстрация стереографической проекции и 
+              её геометрических свойств.
+  Реализация: автономное веб-приложение (HTML5 Canvas, чистый JavaScript ES6+).
+  Работа выполнена в рамках исследований, проводимых в Уральском математическом центре 
+  при финансовой поддержке Министерства науки и высшего образования Российской Федерации 
+  (номер соглашения № 075-02-2026-737).
+================================================================================
+-->
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Сфера Римана</title> <!-- Название на вкладке -->
+    <!-- Иконка на вкладке браузера (Сфера Римана с экватором, меридианом и Северным полюсом) -->
+        <link id="favicon" rel="icon" type="image/png">
+    <style>
+        /* =====================================================================
+           1. ПАЛИТРА ТЁМНОЙ ТЕМЫ (по умолчанию)
+           ===================================================================== */
+        :root {
+            --bg-page: #111c28;                               /* Цвет фона страницы */
+            --text-main: #def2fc;                             /* Основной цвет текста */
+
+            --palette-bg: #2a3a4a;                            /* Фон левой палетки */
+            --palette-border: #d8eaf3;                        /* Рамка вокруг палетки */
+            --palette-shadow: 0 0 11px 3px #98d9f292;         /* Светлая тень для объема */
+            --palette-title: #04eeee;                         /* Цвет заголовка палетки */
+            --divider-color: #eceff1;                         /* Цвет линий-разделителей */
+
+            --mode-bg: #618aa7;                               /* Фон неактивной кнопки */
+            --mode-border: #91f0fa;                           /* Рамка вокруг неактивной кнопки */
+            --mode-text: #aef3fc;                             /* Цвет текста неактивной кнопки */
+
+            --mode-active-bg: #e3f2fd;                        /* Фон активной кнопки */
+            --mode-active-border: #012345;                    /* Бордюр активной кнопки */
+            --mode-active-text: #037abf;                      /* Цвет текста активной кнопки */
+            --mode-active-shadow: 0 0 3px 1px #7ceff3b1;      /* Свечение активной кнопки */
+
+            --action-bg: #55788f;                             /* Фон вспомогательных кнопок */
+            --action-border: #b0bec5;                         /* Поребрик вспомогательных кнопок */
+            --action-text: #def2fc;                           /* Цвет текста вспомогательных кнопок */
+
+            --theme-btn-bg: #1e2d3d;                          /* Фон кнопки смены темы */
+            --theme-btn-border: #91f0fa;                      /* Рамка кнопки смены темы */
+            --theme-btn-text: #aef3fc;                        /* Текст кнопки смены темы */
+
+            --btn-hover-bg: #a5cfda;                          /* Цвет кнопки при наведении */
+            --btn-hover-border: #011724;                      /* Цвет рамки при наведении */
+            --btn-hover-text: #04454d;                        /* Цвет текста при наведении */
+            --btn-hover-shadow: 0 0 3px 1px #7ceff3b1;        /* Свечение при наведении */
+
+            --select-bg: #1a374c;                             /* Фон выпадающего списка */
+            --select-text: #e0f7fa;                           /* Текст выпадающего списка */
+            --select-border: #044e6d;                         /* Рамка выпадающего списка */
+            --select-hover-bg: #183042;                       /* Фон списка при наведении */
+            --select-hover-border: #4dd0e1;                   /* Рамка списка при наведении */
+            --select-hover-shadow: 0 0 8px 1px #7ceff380;     /* Свечение списка */
+            --select-option-bg: #132634;                      /* Фон пунктов внутри списка */
+
+            --canvas-bg: #fffef0;                             /* Фон области построения */
+            --canvas-border: #02496d;                         /* Бордюр вокруг холста */
+            --canvas-shadow: 0 0 7px 3px #b8e3f5b5;           /* Светлая тень холста */
+
+            --badge-bg: #233b4d;                              /* Фон плашки-бейджа */
+            --badge-text: #e0f7fa;                            /* Цвет текста плашки */
+            --badge-border: #4dd0e1;                          /* Рамка плашки */
+            --badge-shadow: 0 0 10px 1px #7ceff380;           /* Свечение плашки */
+            --badge-hover-shadow: 0 0 14px 2px #7ceff3b1;     /* Усиление свечения при наведении */
+
+            --input-bg: #132634;                              /* Фон окошек ввода координат */
+            --input-text: #ffffff;                            /* Цвет цифр в окошках */
+            --input-border: #4dd0e1;                          /* Рамка окошек ввода */
+            --input-focus-bg: #0b1822;                        /* Фон окошка при клике */
+            --input-focus-border: #80deea;                    /* Рамка окошка при клике */
+            --input-focus-shadow: 0 0 6px rgba(128, 222, 234, 0.6);
+
+            --accent-color: #26c6da;                          /* Цвет ползунков, чекбоксов и радиокнопок */
+            
+            color-scheme: dark;                               /* Системные элементы в тёмном режиме */
+            --heading-color: #def2fc;                         /* Цвет заголовка страницы и подзаголовков */
+
+        }
+        /* =====================================================================
+           2. ПАЛИТРА СВЕТЛОЙ ТЕМЫ (включается классом .light-theme на body)
+           ===================================================================== */
+        body.light-theme {
+            --bg-page: #eef2f6;
+            --text-main: #1e293b;
+
+            --palette-bg: #ffffff;
+            --palette-border: #90caf9;
+            --palette-shadow: 0 4px 14px rgba(2, 119, 189, 0.15);
+            --palette-title: #0277bd;                         /* Цвет надписи Центр управления полётом */
+            --divider-color: #b6d0e9;
+
+            --mode-bg: #f5f6f6;                               /* Цвет кнопки на панели управления */
+            --mode-border: #4b92ea;                           /* Цвет бордюра */
+            --mode-text: #0b234a;                             /* Цвет текста */
+
+            --mode-active-bg: #ffffff;
+            --mode-active-border: #83c9ed;
+            --mode-active-text: #0369a1;
+
+            --action-bg: #e2e8f0;
+            --action-border: #94a3b8;
+            --action-text: #1e293b;
+
+            --theme-btn-bg: #f1f6f7;
+            --theme-btn-border: #0284c7;
+            --theme-btn-text: #0277bd;
+
+            --select-bg: #f8fafc;
+            --select-text: #0f172a;
+            --select-border: #90caf9;
+            --select-hover-bg: #ffffff;
+            --select-hover-border: #0288d1;
+            --select-hover-shadow: 0 0 6px rgba(2, 136, 209, 0.25);
+            --select-option-bg: #ffffff;
+
+            --canvas-bg: #ffffff;                             /* Чисто-белый холст */
+            --canvas-border: #b8d9f4;
+            --canvas-shadow: 0 4px 16px rgba(2, 119, 189, 0.14);
+
+            --badge-bg: #ffffff;
+            --badge-text: #192c57;
+            --badge-border: #90caf9;
+            --badge-shadow: 0 2px 8px rgba(2, 119, 189, 0.12);
+
+            --input-bg: #f1f5f9;
+            --input-text: #0f172a;
+            --input-border: #0288d1;
+            --input-focus-bg: #ffffff;
+            --input-focus-border: #0288d1;
+            --input-focus-shadow: 0 0 6px rgba(2, 136, 209, 0.4);
+
+            --accent-color: #00838f;                          /* Бирюзовый акцент для ползунков */
+
+            color-scheme: light;                              /* Светлые дорожки у ползунков */
+            --heading-color: #03649c;                         /* Синий цвет заголовка и подзаголовков */
+
+        }
+
+        /* =====================================================================
+           3. ОСНОВНЫЕ ПРАВИЛА ОФОРМЛЕНИЯ ИНТЕРФЕЙСА
+           ===================================================================== */
+        body {
+            font-family: Segoe UI, sans-serif;                /* Шрифт всей страницы */
+            background: var(--bg-page);                       /* Цвет фона */
+            margin: 15px;                                     /* Внешние отступы */
+            color: var(--text-main);                          /* Цвет текста */
+        }
+
+        /* Настройки главного заголовка на странице */
+        h2 {
+            text-align: center;                               /* Текст заголовка по центру */
+            margin-bottom: 12px;                              /* 12 пикселей отступ до меню и холста */
+            color: var(--heading-color);                      /* Цвет главного заголовка */
+        }
+
+        /* Защита холста от авто-инверсии цветов и скролла на телефонах */
+        canvas {
+            forced-color-adjust: none;
+            touch-action: none;
+        }
+
+        /* Контейнер рабочей области (объединяет левую панель и холст) */
+        .workspace {
+            display: flex;                                    /* Ставит вложенные блоки в одну линию */
+            justify-content: center;                          /* Выравнивает кнопки и холст по центру */
+            align-items: flex-start;                          /* Выравнивает кнопки и холст по верхнему краю */
+            gap: 16px;                                        /* Зазор 16px между панелью и холстом */
+        }
+
+        /* Левая палетка с кнопками */
+        .palette {
+            width: 275px;                                     /* Фиксированная ширина панели */
+            background: var(--palette-bg);                    /* Фон палетки */
+            border: 1px solid var(--palette-border);          /* Тонкая рамка вокруг палетки */
+            border-radius: 8px;                               /* Скругление углов */
+            padding: 14px;                                    /* Внутренний отступ до содержимого */
+            box-shadow: var(--palette-shadow);                /* Светлая тень для объема */
+            text-align: left;                                 /* Выравнивание текста по левому краю */
+            font-size: 14px;                                  /* Базовый размер шрифта в панели */
+        }
+
+        /* Заголовок внутри левой панели управления */
+        .palette h3 {
+            margin: 0 0 10px 0;                               /* Отступ только 10px снизу */
+            font-size: 15px;                                  /* Размер шрифта заголовка */
+            color: var(--palette-title);                      /* Цвет текста заголовка */
+            border-bottom: 1px solid var(--divider-color);    /* Линия-разделитель снизу */
+            padding-bottom: 6px;                              /* Отступ от текста до линии */
+        }
+        /* Обычная (неактивная) кнопка выбора режима в левой панели */
+        .mode-btn {
+            display: block;                                   /* Кнопки столбиком */
+            width: 100%;                                      /* Растягиваем на всю ширину панели */
+            text-align: left;                                 /* Текст внутри кнопки по левому краю */
+            padding: 8px 10px;                                /* Внутренние отступы */
+            margin-bottom: 6px;                               /* Отступ снизу до следующей кнопки */
+            border: 1px solid var(--mode-border);             /* Рамка вокруг кнопки */
+            border-radius: 6px;                               /* Мягкое скругление углов */
+            background: var(--mode-bg);                       /* Фон кнопки */
+            color: var(--mode-text);                          /* Цвет текста на неактивной кнопке */
+            cursor: pointer;                                  /* Курсор-рука при наведении */
+            font-size: 13.5px;                                /* Размер шрифта текста на кнопке */
+        }
+
+        /* Активная кнопка */
+        .mode-btn.active {
+            background: var(--mode-active-bg);                /* Фон кнопки */
+            border-color: var(--mode-active-border);          /* Бордюр вокруг кнопки */
+            font-weight: bold;                                /* Полужирное начертание текста */
+            color: var(--mode-active-text);                   /* Цвет текста */
+            box-shadow: var(--mode-active-shadow);            /* Светлая тень для объема */
+        }
+
+        /* Блок дополнительных настроек (списки, ползунки, кнопки действий) */
+        .sub-controls {
+            margin-top: 12px;                                 /* Внешний отступ сверху от режимов */
+            padding-top: 10px;                                /* Внутренний отступ сверху от линии */
+            border-top: 1px solid var(--divider-color);       /* Линия-разделитель сверху */
+        }
+
+        /* Текстовые подписи к элементам настройки */
+        .sub-controls label {
+            display: block;                                   /* Каждая подпись с новой строки */
+            margin-top: 8px;                                  /* Отступ сверху */
+            margin-bottom: 4px;                               /* Отступ снизу до элемента */
+        }
+
+        /* Синий акцент для жирного подзаголовка («Выберите график / кривую:») */
+        .sub-controls label b,
+        .sub-controls label strong {
+            color: var(--heading-color);
+        }
+
+
+        /* Выпадающий список (для кривых) */
+        select {
+            width: 100%;                                      /* На всю ширину панели */
+            padding: 6px 8px;                                 /* Внутренние отступы */
+            background-color: var(--select-bg);               /* Фон списка */
+            color: var(--select-text);                        /* Читаемый текст */
+            border: 1px solid var(--select-border);           /* Рамка в тон кнопкам */
+            border-radius: 6px;                               /* Скругление углов */
+            font-family: Segoe UI, sans-serif;
+            font-size: 13.5px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        /* Подсветка списка при наведении и открытии */
+        select:hover,
+        select:focus {
+            background-color: var(--select-hover-bg);
+            border-color: var(--select-hover-border);
+            box-shadow: var(--select-hover-shadow);
+        }
+
+        /* Стили для выпадающих пунктов внутри списка */
+        select option {
+            background-color: var(--select-option-bg);
+            color: var(--select-text);
+        }
+
+        /* Вспомогательные кнопки действий («Очистить», «Сбросить вид») */
+        .action-btn {
+            margin-top: 8px;                                  /* Отступ сверху */
+            padding: 6px 12px;                                /* Внутренние отступы */
+            background: var(--action-bg);                     /* Фон кнопки */
+            border: 1px solid var(--action-border);           /* Поребрик вокруг кнопки */
+            color: var(--action-text);                        /* Цвет текста */
+            border-radius: 5px;                               /* Скругление углов */
+            cursor: pointer;                                  /* Курсор-рука */
+            font-size: 13px;                                  /* Размер шрифта */
+        }
+
+        /* Кнопка переключения темы */
+        .theme-btn {
+            width: 50%;                                       /* В два раза короче остальных */
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--theme-btn-border);
+            background: var(--theme-btn-bg);
+            color: var(--theme-btn-text);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s ease;
+        }
+
+        /* Единая подсветка любых кнопок при наведении курсора мыши */
+        .mode-btn:hover,
+        .action-btn:hover,
+        .theme-btn:hover {
+            background: var(--btn-hover-bg);                  /* Цвет кнопки при наведении */
+            border-color: var(--btn-hover-border);            /* Цвет рамки вокруг кнопки */
+            box-shadow: var(--btn-hover-shadow);              /* Свечение вокруг */
+            color: var(--btn-hover-text);                     /* Цвет текста на кнопке */
+        }
+
+        /* Главный холст для отрисовки Сферы Римана и проекции */
+        canvas {
+            background: var(--canvas-bg);                     /* Фон области построения */
+            border: 2px solid var(--canvas-border);           /* Бордюр вокруг холста */
+            border-radius: 8px;                               /* Скругление углов */
+            box-shadow: var(--canvas-shadow);                 /* Светлая тень для объема */
+            cursor: grab;                                     /* Курсор-ладошка */
+        }
+
+        /* Нижняя информационная панель под холстом (строка вывода координат) */
+        .panel {
+            text-align: center;                               /* Выравнивание текста и плашек по центру */
+            margin-top: 10px;                                 /* Отступ сверху от рамки холста */
+            font-size: 14px;                                  /* Базовый размер шрифта */
+        }
+
+        /* Светящиеся плашки-бейджи для отображения координат внизу экрана */
+        .badge {
+            display: inline-block;
+            background: var(--badge-bg);                      /* Фон плашки */
+            color: var(--badge-text);                         /* Читаемый текст */
+            border: 1px solid var(--badge-border);            /* Тонкая рамка */
+            border-radius: 6px;
+            padding: 5px 12px;
+            margin: 0 6px;
+            font-family: Consolas, monospace;
+            box-shadow: var(--badge-shadow);                  /* Свечение вокруг плашки */
+            transition: all 0.2s ease;
+        }
+
+        /* Лёгкое усиление свечения при наведении на плашку */
+        .badge:hover {
+            box-shadow: var(--badge-hover-shadow);
+        }
+
+        /* Единый бирюзовый акцент для ползунков, чекбоксов и радиокнопок */
+        input[type="range"],
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        /* Ползунки изменения параметров */
+        input[type="range"] {
+            width: 100%;                                      /* На всю ширину панели */
+            padding: 4px;
+        }
+
+        /* Аккуратные поля ввода координат x и y внутри нижней плашки z = x + iy */
+        .badge input[type="number"],
+        .badge input[type="text"] {
+            width: 62px;                                      /* Чтобы число вида -12.34 влезало целиком */
+            background: var(--input-bg);                      /* Фон окошка */
+            color: var(--input-text);                         /* Цвет цифр */
+            border: 1px solid var(--input-border);            /* Рамка */
+            border-radius: 4px;
+            padding: 2px 4px;
+            text-align: center;
+            font-family: Consolas, monospace;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        /* Подсветка окошка при клике для ручного ввода */
+        .badge input[type="number"]:focus,
+        .badge input[type="text"]:focus {
+            background: var(--input-focus-bg);
+            border-color: var(--input-focus-border);
+            box-shadow: var(--input-focus-shadow);
+        }
+
+        /* Убираем встроенные стрелочки у числовых полей, чтобы не крали место */
+        .badge input[type="number"]::-webkit-inner-spin-button,
+        .badge input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .badge input[type="number"] {
+            -moz-appearance: textfield;
+        }
+                
+        /* Методическое текстовое окно с пояснениями под холстом */
+        .theory-box {
+            width: 740px;                                     /* Ровно по ширине холста */
+            box-sizing: border-box;                           /* Чтобы внутренние отступы не раздували ширину */
+            margin-top: 10px;                                 /* Отступ от плашек координат сверху */
+            padding: 12px 16px;                               /* Комфортные внутренние отступы */
+            background: var(--panel-bg);                      /* Фон в тон левой панели управления */
+            border: 1px solid var(--panel-border);            /* Рамка в едином стиле интерфейса */
+            border-radius: 10px;                              /* Аккуратное скругление углов */
+            font-size: 16px;                                /* Читаемый размер шрифта */
+            line-height: 1.52;                                /* Комфортный межстрочный интервал */
+            color: var(--text-color);                         /* Автоматическая адаптация под тёмную и светлую тему */
+        }
+        .theory-box b {
+            color: var(--accent-color);                       /* Выделение ключевых терминов акцентным цветом */
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+    <h2>Сфера Римана</h2>
+    <!-- Главная рабочая область (объединяет левую панель управления и правый холст) -->
+    <div class="workspace">
+      <div class="palette">
+            <h3>Центр управления полётом</h3>
+
+            <!-- Кнопки переключения режимов стереографической проекции -->
+            <button class="mode-btn active" onclick="setMode('point', this)">1. Точка z ↔ P и луч</button>
+            <button class="mode-btn" onclick="setMode('series', this)">2. Серия точек (клик по ℂ)</button>
+            <button class="mode-btn" onclick="setMode('curve', this)">3. Образ графика / кривой</button>
+            <button class="mode-btn" onclick="setMode('circle', this)">4. Окружность |z - z₀| = R</button>
+            <button class="mode-btn" onclick="setMode('grid', this)">5. Координатные сетки</button>
+            <button class="mode-btn" onclick="setMode('image', this)">6. Проекция картинки</button>
+            <!-- Системный диалог выбора файла изображения с диска (вызывается кнопкой "Проекция картинки") -->
+            <input type="file" id="imgUpload" accept="image/*" style="display:none" onchange="loadUserImage(this)">
+
+            <!-- Динамический контейнер для дополнительных настроек выбранного режима (ползунки, списки, кнопки) -->
+            <div class="sub-controls" id="controlsBox"></div>
+
+            <!-- Блок методической подсказки по текущему режиму -->
+            <div id="generalHint" style="margin-top:14px; font-size:12.5px; color:#607d8b; 
+            line-height:1.4;"></div>
+
+            <!-- Нижний блок Центра управления полётом с кнопкой переключения светлой и тёмной темы -->
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #455a64;">
+                <button id="themeBtn" class="theme-btn" onclick="toggleTheme()">Сменить тему</button>
+            </div>
+        </div>
+
+        <!-- Правая область визуализации (холст со сферой Римана и нижняя строка с координатами и другой информацией) -->
+        <div>
+            <!-- Размеры холста, на котором нарисована сфера Римана и вся сцена -->
+            <canvas id="scene" width="740" height="530"></canvas>
+            <!-- Нижняя строка для вывода и ручного ввода координат точек z и P -->
+            <div class="panel" id="readout"></div>
+            <!-- Окно методических пояснений по текущему режиму -->
+            <div class="theory-box" id="theoryBox"></div>
+        </div>
+    </div>
+
+     <footer style="text-align: center; margin-top: 28px; padding-top: 8px; font-size: 12.5px; color: #78909c;">
+        © 2026 М. А. Филатова. Программный модуль по ТФКП (Интерактивная сфера Римана).<br> Работа выполнена в рамках исследований, проводимых в Уральском математическом центре при финансовой поддержке<br> Министерства науки и высшего образования Российской Федерации (номер соглашения № 075-02-2026-737)
+     </footer>
+    <script>
+        /* =====================================================================
+           1. ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ ИНТЕРФЕЙСА И ПАРАМЕТРОВ 3D-СЦЕНЫ
+           ===================================================================== */
+        const canvas = document.getElementById('scene');             // Главный холст отрисовки
+        const ctx = canvas.getContext('2d');                         // 2D-контекст для рисования на холсте
+        const readout = document.getElementById('readout');          // Нижняя панель вывода координат z и P
+        const controlsBox = document.getElementById('controlsBox');  // Контейнер настроек активного режима
+
+        let yaw = -2.32, pitch = 0.34;                               // Углы обзора сферы (поворот влево-вправо и наклон вверх-вниз) в радианах
+        let SCALE = 157;                                             // Масштаб отображения сферы и плоскости на экране
+        const NORTH = {x: 0, y: 0, z: 1};                            // Координаты Северного полюса N(∞) на сфере Римана
+        const DASH = new Array(5, 5);                                // Шаблон пунктирной линии (5px штрих, 5px пробел)
+        const SOLID = new Array();                                   // Шаблон сплошной линии (без разрывов)
+        const IMG_RES = 77;                                          // Разрешение сетки (77×77) для выбранной картинки
+
+        /* =====================================================================
+           2. СОСТОЯНИЕ И ПАРАМЕТРЫ ИНТЕРАКТИВНЫХ РЕЖИМОВ
+           ===================================================================== */
+        let mode = 'point';                                          // Текущий активный режим ('point', 'series', 'curve', 'circle', 'grid', 'image')
+        let zx = 1.0, zy = 0.0;                                      // Начальные координаты текущей точки z = x + iy (режим 1)
+        //ставим начальные точки, две штуки для режима "серия точек на плоскости
+        let pointSeries = new Array({x: 1, y: 0}, {x: 0.0, y: 1});
+        let connectSeries = true;                                     // Соединять ли точки серии между собой (в поряке возрастания номера)
+
+        // Параметры для режима "образ графика / параметрической кривой"
+        let curveType = 'line';                                       // Начальный выбранный тип кривой из выпадающего списка
+        let paramA = -1.0;                                             // Первый настраиваемый коэффициент (наклон, масштаб, амплитуда)
+        let paramB = 1;                                             // Второй настраиваемый коэффициент (сдвиг, фаза)
+        let paramW = 2.0;                                             // Частота / показатель степени
+        let curveT = 0.6;                                             // Параметр t для точки на кривой
+        let showCurveProbe = true;         // Показывать ли бегущую контрольную точку z и луч в режиме кривых
+
+        // Список закреплённых кривых на сцене и палитра цветов для них
+        let savedCurves = new Array();
+        const CURVE_PALETTE = [
+            {plane: '#e65100', front: '#d84315', back: '#ffab91'}, // Оранжево-коралловый
+            {plane: '#8e24aa', front: '#6a1b9a', back: '#ce93d8'}, // Фиолетовый
+            {plane: '#2e7d32', front: '#1b5e20', back: '#a5d6a7'}, // Изумрудно-зелёный
+            {plane: '#ad1457', front: '#880e4f', back: '#f48fb1'}, // Малиновый
+            {plane: '#f9a825', front: '#f57f17', back: '#fff59d'}  // Янтарно-золотой
+        ];
+
+
+        // Параметры для режима окружность |z - z₀| = R
+        let circR = 1.0;                   // Радиус окружности R на комплексной плоскости
+        let circX0 = 1;                    // Сдвиг центра окружности z₀ по действительной оси
+        let circT = 0.5;                   // Параметр положения контрольной точки на окружности
+
+        // Параметры для режима "координатные сетки"
+        let gridType = 'polar';            // Тип координатной сетки ('polar' — полярная, 'cartesian' — декартова)
+
+        // Параметры и виртуальный буфер для режима "конформная проекция картинки на сферу"
+        let imgX = 0.8, imgY = 0.8;                              // Координаты центра картинки на комплексной плоскости
+        imgSize = 1.2;                                            // Размер стороны квадрата картинки на плоскости ℂ
+        const offCanvas = document.createElement('canvas');       // Скрытый холст для считывания пикселей картинки
+        offCanvas.width = IMG_RES; offCanvas.height = IMG_RES;
+        const offCtx = offCanvas.getContext('2d');
+
+                let cachedImgCells = new Array(); // Кэш непустых пикселей картинки (чтобы не читать их заново каждый кадр)
+
+        // Пересчитывает кэш пикселей (вызывается только при запуске и при загрузке нового фото)
+        function rebuildImageCache() {
+            cachedImgCells = new Array();
+            const N = IMG_RES;
+            const pixels = offCtx.getImageData(0, 0, N, N).data;
+            for (let row = 0; row < N; row++) {
+                for (let col = 0; col < N; col++) {
+                    const idx = (row * N + col) * 4;
+                    const a = pixels[idx + 3];
+                    if (a < 30) continue; // Пропускаем прозрачные пиксели сразу
+                    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+                    cachedImgCells.push({
+                        row, col,
+                        colorPlane: `rgba(${r},${g},${b},${(a / 255) * 0.85})`,
+                        colorFront: `rgba(${r},${g},${b},${(a / 255) * 0.94})`,
+                        colorBack:  `rgba(${r},${g},${b},${(a / 255) * 0.35})` // Задняя полусфера чуть прозрачнее для объёма
+                    });
+                }
+            }
+        }
+
+
+        // Рисуем яркий стартовый смайлик, чтобы проекция работала сразу при входе в режим
+        function initDefaultImage() {
+            offCtx.clearRect(0, 0, IMG_RES, IMG_RES);
+            offCtx.fillStyle = '#ffca28';
+            offCtx.beginPath(); offCtx.arc(28, 28, 25, 0, Math.PI * 2); offCtx.fill();
+            offCtx.lineWidth = 2.5; offCtx.strokeStyle = '#f57f17'; offCtx.stroke();
+            offCtx.fillStyle = '#37474f';
+            offCtx.beginPath(); offCtx.arc(19, 21, 3.2, 0, Math.PI * 2); offCtx.arc(37, 21, 3.2, 0, Math.PI * 2); 
+            offCtx.fill();
+            offCtx.beginPath(); offCtx.arc(28, 30, 13, 0.2, Math.PI - 0.2); offCtx.stroke();
+            rebuildImageCache();
+        }
+        initDefaultImage();
+
+        // Загрузка пользовательской картинки с диска для проецирования на сферу
+        function loadUserImage(input) {
+            if (!input.files || !input.files.item(0)) return;        // Выходим, если пользователь закрыл окно выбора без файла
+            const reader = new FileReader();                         // Создаём объект для чтения локального файла в браузере
+            reader.onload = e => {                                   // Срабатывает, когда файл полностью прочитан с диска:
+                const img = new Image();                             // Создаём виртуальное изображение в оперативной памяти
+                img.onload = () => {                                 // Срабатывает, когда браузер декодировал картинку:
+                    offCtx.clearRect(0, 0, IMG_RES, IMG_RES);        // Очищаем скрытый холст (77×77 px) от предыдущего рисунка
+                    offCtx.drawImage(img, 0, 0, IMG_RES, IMG_RES);   // Масштабируем загруженное фото под сетку 77×77 пикселей
+                    rebuildImageCache();                             // Пересчитываем кэш непустых пикселей для быстрой 3D-отрисовки
+                    drawScene();                                     // Перерисовываем главную сцену со сферой и плоскостью
+                };
+                img.src = e.target.result;                           // Передаём прочитанные данные файла (Data URL) в картинку
+            };
+            reader.readAsDataURL(input.files.item(0));               // Запускаем асинхронное чтение выбранного пользователем файла
+        }
+
+
+        /* =====================================================================
+           МАТЕМАТИЧЕСКОЕ ЯДРО: ПРЯМАЯ И ОБРАТНАЯ СТЕРЕОГРАФИЧЕСКАЯ ПРОЕКЦИЯ
+           Модель сферы Римана: шар радиуса 1/2 с центром (0, 0, 1/2),
+           касающийся комплексной плоскости C (z = 0) в Южном полюсе S(0, 0, 0)
+           и имеющий Северный полюс (образ бесконечности ∞) в точке N(0, 0, 1).
+           ===================================================================== */
+
+        // Прямая стереографическая проекция: переводит точку z = x + iy плоскости C
+        // в точку P(X, Y, Z) на поверхности сферы Римана
+        function zToSphere(x, y) {
+            const r2 = x * x + y * y;                                      // Квадрат модуля комплексного числа |z|² = x² + y²
+            return {
+                x: x / (r2 + 1),                                           // Координата ξ = x / (|z|² + 1)
+                y: y / (r2 + 1),                                           // Координата η = y / (|z|² + 1)
+                z: r2 / (r2 + 1)                                           // Высота ζ = |z|² / (|z|² + 1) ∈ [0, 1)
+            };
+        }
+
+        // Обратная стереографическая проекция: переводит точку P(X, Y, Z) со сферы Римана
+        // обратно в комплексную координату z = x + iy на плоскости C
+        function sphereToZ(X, Y, Z) {
+            const denom = Math.max(0.02, 1 - Z);                           // Знаменатель (1 - ζ) с защитой от деления на 0 вблизи N(∞)
+            return {
+                x: X / denom,                                              // Действительная часть x = Re(z) = ξ / (1 - ζ)
+                y: Y / denom                                               // Мнимая часть y = Im(z) = η / (1 - ζ)
+            };
+        }
+
+
+        /* =====================================================================
+           3D-ПРОЕКЦИЯ ПРОСТРАНСТВА R³ НА ЭКРАН (ОРТОГРАФИЧЕСКАЯ КАМЕРА)
+           ===================================================================== */
+
+        // Переводит трёхмерную точку pt(x, y, z) в пиксельные координаты (sx, sy) на холсте
+        function project3D(pt) {
+            const Zc = pt.z - 0.45;                                        // Центрируем сцену по высоте (чуть ниже центра сферы 0.5)
+            const x1 = pt.x * Math.sin(yaw) - pt.y * Math.cos(yaw);        // Горизонтальный поворот камеры (ось вправо по экрану)
+            const y1 = -pt.x * Math.cos(yaw) - pt.y * Math.sin(yaw);       // Координата глубины после поворота влево-вправо
+            const y2 = y1 * Math.sin(pitch) - Zc * Math.cos(pitch);        // Вертикальный наклон камеры (ось вниз по экрану)
+            return {
+                sx: canvas.width / 2 + x1 * SCALE,                         // Экранный X в пикселях относительно центра холста
+                sy: canvas.height / 2 + y2 * SCALE                         // Экранный Y в пикселях относительно центра холста
+            };
+        }
+
+        // Возвращает единичный вектор направления из центра сцены в сторону зрителя
+        // (используется для определения видимой передней и невидимой задней полусферы)
+        function getCameraDir() {
+            return {
+                vx: -Math.cos(pitch) * Math.cos(yaw),                      // Компонента направления на камеру по оси X
+                vy: -Math.cos(pitch) * Math.sin(yaw),                      // Компонента направления на камеру по оси Y
+                vz: Math.sin(pitch)                                        // Компонента направления на камеру по оси Z (высота взгляда)
+            };
+        }
+
+
+        // Обратная экранная проекция (raycasting на плоскость z = 0):
+        // переводит пиксельные координаты клика мыши (sx, sy) на холсте
+        // в комплексные координаты (x, y) на плоскости C (z = 0)
+        function screenToPlaneZ0(sx, sy) {
+            const x1 = (sx - canvas.width / 2) / SCALE;                    // Нормированная экранная координата X (вправо от центра)
+            const y2 = (sy - canvas.height / 2) / SCALE;                   // Нормированная экранная координата Y (вниз от центра)
+            const Zc = -0.45;                                              // Высота плоскости C (z = 0) относительно центра камеры (0.45)
+
+            // Защита от деления на ноль, если камера смотрит строго сбоку в торец плоскости (pitch ≈ 0)
+            const sinP = Math.abs(Math.sin(pitch)) < 0.08 ? 0.08 : Math.sin(pitch);
+            const y1 = (y2 + Zc * Math.cos(pitch)) / sinP;                 // Восстанавливаем глубину y1 из уравнения вертикального наклона
+
+            // Обратный горизонтальный поворот на угол yaw для возврата в мировую систему координат (x, y)
+            return {
+                x: x1 * Math.sin(yaw) - y1 * Math.cos(yaw),                // Действительная часть x = Re(z)
+                y: -x1 * Math.cos(yaw) - y1 * Math.sin(yaw)                // Мнимая часть y = Im(z)
+            };
+        }
+
+
+        /* =====================================================================
+           ВЫЧИСЛЕНИЕ ТОЧЕК ПАРАМЕТРИЧЕСКОЙ КРИВОЙ z(t) = x(t) + i·y(t)
+           По умолчанию использует текущие ползунки, но может принимать
+           сохранённые параметры для отрисовки нескольких кривых одновременно.
+           ===================================================================== */
+        function evalCurve(t, type = curveType, a = paramA, b = paramB, w = paramW) {
+            // 1. Прямая: y = a·x + b
+            if (type === 'line') return {x: t, y: a * t + b};
+
+            // 2. Парабола: y = a·x² + b
+            if (type === 'parabola') return {x: t, y: a * t * t + b};
+
+            // 3. Гипербола: y = a / x (с защитой от деления на ноль вблизи x = 0)
+            if (type === 'hyperbola') {
+                const safeT = Math.abs(t) < 0.08 ? (t >= 0 ? 0.08 : -0.08) : t;
+                return {x: safeT, y: a / safeT};
+            }
+
+            // 4. Синусоида: y = a·sin(ω·x)
+            if (type === 'sine') return {x: t, y: a * Math.sin(w * t)};
+
+            // 5. Спираль Архимеда: r = 0.25·a·φ в полярных координатах
+            if (type === 'spiral') {
+                const ang = t * Math.PI;
+                const r = 0.25 * a * ang;
+                return {x: r * Math.cos(ang), y: r * Math.sin(ang)};
+            }
+
+            // 6. Окружность: (x - b)² + y² = a²
+            if (type === 'circle') {
+                const r = Math.max(0.15, Math.abs(a));
+                return {x: b + r * Math.cos(t), y: r * Math.sin(t)};
+            }
+
+            // 7. Логарифмическая спираль (локсодрома): r = a · exp(b · φ)
+            // При φ -> -∞ закручивается в Южный полюс S(0), при φ -> +∞ — в Северный полюс N(∞)
+            if (type === 'logspiral') {
+                const ang = t * Math.PI;
+                const r = Math.max(0.05, Math.abs(a)) * Math.exp(b * ang);
+                return {x: r * Math.cos(ang), y: r * Math.sin(ang)};
+            }
+
+            // 8. Розы Гвидо Гранди: r = a · cos(k · φ)
+            // Замкнутая лепестковая кривая в полярных координатах
+            if (type === 'rose') {
+                const ang = t * Math.PI;
+                const r = a * Math.cos(w * ang);
+                return {x: r * Math.cos(ang), y: r * Math.sin(ang)};
+            }
+
+
+            return {x: t, y: 0};
+        }
+
+        // Закрепить текущую кривую в списке на сцене
+        function addCurrentCurve() {
+            const colors = CURVE_PALETTE[savedCurves.length % CURVE_PALETTE.length];
+            savedCurves.push({
+                type: curveType,
+                a: paramA,
+                b: paramB,
+                w: paramW,
+                colors: colors
+            });
+            updateControlsUI();
+            drawScene();
+        }
+
+        // Очистить все закреплённые кривые
+        function clearSavedCurves() {
+            savedCurves = new Array();
+            updateControlsUI();
+            drawScene();
+        }
+
+
+        // Отрисовка произвольной пространственной ломаной / кривой в R³
+        // (используется для осей, координатной сетки, проекционного луча и кривых на плоскости z = 0)
+        function drawCurve3D(points, color, width, dashPattern = SOLID) {
+            if (points.length < 2) return;                                 // Для линии нужно минимум две точки
+
+            ctx.save();                                                    // Сохраняем текущие настройки пера (цвет, толщину, пунктир)
+            ctx.strokeStyle = color;                                       // Задаём цвет линии
+            ctx.lineWidth = width;                                         // Задаём толщину линии в пикселях
+            ctx.setLineDash(dashPattern);                                  // Задаём стиль линии: сплошная (SOLID) или пунктирная (DASH)
+
+            ctx.beginPath();                                               // Начинаем новый контур пути
+            points.forEach((p, idx) => {                                   // Проходим по всем 3D-точкам кривой
+                const s = project3D(p);                                    // Проецируем точку (x, y, z) на экран (sx, sy)
+                if (idx === 0) ctx.moveTo(s.sx, s.sy);                     // Для первой точки ставим перо без рисования
+                else ctx.lineTo(s.sx, s.sy);                               // Для остальных проводим отрезок до следующей точки
+            });
+            ctx.stroke();                                                  // Отрисовываем собранный контур на холсте
+            ctx.restore();                                                 // Восстанавливаем исходные настройки пера
+        }
+
+
+        // Отрисовка координатной оси в R³ со стрелкой на конце и текстовой подписью
+        function drawAxis3D(pStart, pEnd, label) {
+            drawCurve3D(new Array(pStart, pEnd), '#607d8b', 1.4);          // Рисуем сам стержень оси от pStart до pEnd
+
+            const s1 = project3D(pStart), s2 = project3D(pEnd);            // Находим экранные координаты начала и конца оси
+            const ang = Math.atan2(s2.sy - s1.sy, s2.sx - s1.sx);          // Вычисляем угол наклона оси на экране в радианах
+
+            ctx.save();                                                    // Сохраняем текущие настройки холста
+            ctx.fillStyle = '#607d8b';                                     // Задаём цвет стрелки и подписи оси
+
+            // Строим треугольный наконечник стрелки (длиной 9px, угол раскрытия ±0.35 рад)
+            ctx.beginPath();
+            ctx.moveTo(s2.sx, s2.sy);                                      // Остриё стрелки в конечной точке оси
+            ctx.lineTo(s2.sx - 9 * Math.cos(ang - 0.35), s2.sy - 9 * Math.sin(ang - 0.35)); // Левый край стрелки
+            ctx.lineTo(s2.sx - 9 * Math.cos(ang + 0.35), s2.sy - 9 * Math.sin(ang + 0.35)); // Правый край стрелки
+            ctx.closePath();
+            ctx.fill();                                                    // Заливаем наконечник стрелки
+
+            // Выводим текстовую подпись оси (Re(z), Im(z) или ζ) рядом со стрелкой
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillText(label, s2.sx + 7, s2.sy + 4);
+            ctx.restore();                                                 // Восстанавливаем настройки холста
+        }
+
+
+
+        // Отрисовка кривой непосредственно на поверхности сферы Римана с учётом 3D-видимости:
+        // участки на ближней к зрителю полусфере рисуются сплошной яркой линией (frontColor),
+        // а участки на обратной (невидимой) стороне сферы — тонким пунктиром (backColor)
+        function drawSphereCurve(points, frontColor, backColor, width) {
+            const cam = getCameraDir();                                    // Получаем единичный вектор направления на камеру
+
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points.at(i), p2 = points.at(i + 1);            // Берём два соседних узла кривой на сфере
+
+                // Вычисляем вектор от центра сферы (0, 0, 0.5) к середине текущего элементарного отрезка
+                const mx = (p1.x + p2.x) / 2;
+                const my = (p1.y + p2.y) / 2;
+                const mz = (p1.z + p2.z) / 2 - 0.5;
+
+                // Скалярное произведение нормали сферы и луча на камеру:
+                // если >= 0, отрезок обращён к зрителю (передняя полусфера); если < 0 — на обратной стороне
+                const isFront = (mx * cam.vx + my * cam.vy + mz * cam.vz) >= 0;
+
+                const s1 = project3D(p1);                                  // Экранные координаты начала отрезка
+                const s2 = project3D(p2);                                  // Экранные координаты конца отрезка
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(s1.sx, s1.sy);
+                ctx.lineTo(s2.sx, s2.sy);
+
+                if (isFront) {
+                    // Видимая передняя полусфера: сплошная насыщенная линия
+                    ctx.strokeStyle = frontColor;
+                    ctx.lineWidth = width;
+                    ctx.setLineDash(SOLID);
+                } else {
+                    // Невидимая задняя полусфера: бледный пунктир для создания 3D-объёма
+                    ctx.strokeStyle = backColor;
+                    ctx.lineWidth = width * 0.85;
+                    ctx.setLineDash(DASH);
+                }
+
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // Переключает активный режим визуализации, обновляет подсветку кнопок и перерисовывает сцену
+        function setMode(newMode, btn) {
+            mode = newMode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            updateControlsUI();
+            drawScene();
+        }
+
+        // Палетка для выбора функций, образы графиков которых будут рисоваться
+        function updateControlsUI() {
+            const hintEl = document.getElementById('generalHint');
+            if (hintEl) {
+                if (mode === 'grid') {
+                    hintEl.innerHTML = '<b>Исследуйте:</b> тяните мышкой фон для вращения сферы и крутите колёсико для масштаба.';
+                } else if (mode === 'series') {
+                    hintEl.innerHTML = '<b>Исследуйте:</b> кликайте по плоскости для новых точек, тяните существующие точки или вращайте сферу за фон.';
+                } else if (mode === 'image') {
+                    hintEl.innerHTML = '<b>Исследуйте:</b> двигайте картинку мышью по плоскости, а пустой фон — для вращения сферы.';
+                } else {
+                    hintEl.innerHTML = '<b>Исследуйте:</b> тяните <b>красную точку z</b> мышкой, а пустой фон — для вращения сферы.';
+                }
+            }
+
+            if (mode === 'point') {
+                controlsBox.innerHTML = `<div>Тяните <b>красную точку z</b> по плоскости или <b>синюю точку P</b> прямо по сфере.</div>`;
+            } else if (mode === 'series') {
+                controlsBox.innerHTML = `
+                <div>Кликайте по плоскости ℂ, чтобы ставить точки.</div>
+                <label><input type="checkbox" ${connectSeries ? 'checked' : ''} onchange="connectSeries=this.checked; drawScene();"> Соединить дугами на сфере</label>
+                <button class="action-btn" onclick="pointSeries=new Array(); drawScene();">Очистить все точки</button>`;
+            /* =====================================================================
+               НАСТРОЙКИ ИНТЕРФЕЙСА ДЛЯ РЕЖИМА 3 (ОБРАЗ ГРАФИКА / КРИВОЙ)
+               ===================================================================== */
+            } else if (mode === 'curve') {
+                const isSpiral = (curveType === 'spiral' || curveType === 'logspiral' || curveType === 'rose');                 // Проверяем, выбрана ли спираль Архимеда и т.д....
+                const tMin = (curveType === 'spiral' || curveType === 'rose') ? 0 : (curveType === 'logspiral' ? -10 : -15);                            // Нижняя граница параметра t (или угла φ)
+                const tMax = (curveType === 'spiral') ? 8 : (curveType === 'logspiral' ? 10 : (curveType === 'rose' ? 4 : 15));                             // Верхняя граница параметра t (или угла φ)
+                if (curveT < tMin || curveT > tMax) curveT = (tMin + tMax) / 2; // Удерживаем бегущую точку внутри границ
+                const argLabel = isSpiral ? 'Угол φ / π' : 'Положение x';   // Подпись к ползунку положения точки
+
+                // Формируем HTML-разметку выпадающего списка, ползунков и кнопок закрепления кривых
+                controlsBox.innerHTML = `
+                <label><b>Выберите график / кривую:</b></label>
+                <select onchange="curveType=this.value; if(curveType==='logspiral'){paramA=1.0; paramB=0.12;} updateControlsUI(); drawScene();">
+                    <option value="line" ${curveType === 'line' ? 'selected' : ''}>Прямая: y = a·x + b</option>
+                    <option value="parabola" ${curveType === 'parabola' ? 'selected' : ''}>Парабола: y = a·x² + b</option>
+                    <option value="hyperbola" ${curveType === 'hyperbola' ? 'selected' : ''}>Гипербола: y = a / x</option>
+                    <option value="sine" ${curveType === 'sine' ? 'selected' : ''}>Синусоида: y = a·sin(ω·x)</option>
+                    <option value="spiral" ${curveType === 'spiral' ? 'selected' : ''}>Спираль Архимеда: r = a·φ</option>
+                    <option value="circle" ${curveType === 'circle' ? 'selected' : ''}>Окружность: (x - b)² + y² = a²</option>
+                    <option value="logspiral" ${curveType === 'logspiral' ? 'selected' : ''}>Лог. спираль: r = a·e^(b·φ)</option>
+                    <option value="rose" ${curveType === 'rose' ? 'selected' : ''}>Роза Гвидо Гранди: r = a·cos(k·φ)</option>
+                </select>
+
+                <!-- Ползунок первого параметра a -->
+                <label>Параметр a = <b id="lblA">${paramA.toFixed(1)}</b></label>
+                <input type="range" min="-5" max="5" step="0.1" value="${paramA}"
+                       oninput="paramA=parseFloat(this.value); document.getElementById('lblA').innerText=paramA.toFixed(1); drawScene();">
+
+                <!-- Ползунок сдвига / показателя роста b (индивидуальные диапазоны для спирали и остальных графиков) -->
+                ${(curveType === 'line' || curveType === 'parabola' || curveType === 'logspiral' || curveType === 'circle') ? `
+                <label>${curveType === 'logspiral' ? 'Показатель b (шаг витков)' : 'Сдвиг b'} = <b id="lblB">${paramB.toFixed(2)}</b></label>
+                <input type="range"
+                       min="${curveType === 'logspiral' ? '-1.6' : '-5.0'}"
+                       max="${curveType === 'logspiral' ? '1.6' : '5.0'}"
+                       step="${curveType === 'logspiral' ? '0.02' : '0.1'}"
+                       value="${paramB}"
+                       oninput="paramB=parseFloat(this.value); document.getElementById('lblB').innerText=paramB.toFixed(2); drawScene();">` : ''}
+
+
+                <!-- Ползунок частоты ω / коэффициента лепестков k (для синусоиды и розы Гвидо Гранди) -->
+                ${(curveType === 'sine' || curveType === 'rose') ? `
+                <label>${curveType === 'rose' ? 'Коэффициент k (лепестки)' : 'Частота ω'} = <b id="lblW">${paramW.toFixed(1)}</b></label>
+                <input type="range" min="0.5" max="7.0" step="0.5" value="${paramW}"
+                       oninput="paramW=parseFloat(this.value); document.getElementById('lblW').innerText=paramW.toFixed(1); drawScene();">` : ''}
+
+
+                <!-- Ползунок бегущей контрольной точки вдоль кривой -->
+                <label>${argLabel} = <b id="lblT">${curveT.toFixed(2)}</b></label>
+                <input type="range" min="${tMin}" max="${tMax}" step="0.01" value="${curveT}"
+                       oninput="curveT=parseFloat(this.value); document.getElementById('lblT').innerText=curveT.toFixed(2); drawScene();">
+
+                <!-- Галочка быстрого включения/отключения контрольной точки z и проекционного луча -->
+                <label style="margin-top: 8px; cursor: pointer;">
+                    <input type="checkbox" ${showCurveProbe ? 'checked' : ''}
+                           onchange="showCurveProbe=this.checked; drawScene();">
+                    Показывать точку z и луч
+                </label>
+       
+
+                <!-- Кнопки добавления нескольких кривых/прямых на одну сцену и очистки списка -->
+                <div style="margin-top: 10px; display: flex; gap: 6px;">
+                    <button class="action-btn" style="flex: 1;" onclick="addCurrentCurve()">+ Закрепить (${savedCurves.length})</button>
+                    <button class="action-btn" onclick="clearSavedCurves()">Очистить</button>
+                </div>
+
+                <!-- Подсказка для интерактивного перетаскивания точки мышкой -->
+                <div style="margin-top:6px; font-size:12px; color:#546e7a;">Тяните <b>красную точку z</b> прямо мышкой вдоль кривой!</div>`;
+            }
+            else if (mode === 'circle') {
+                controlsBox.innerHTML = `
+           <label>Радиус R = <b id="lblCR">${circR.toFixed(2)}</b></label>
+           <input type="range" min="0.2" max="2.5" step="0.05" value="${circR}"
+                  oninput="circR=parseFloat(this.value); document.getElementById('lblCR').innerText=circR.toFixed(2); drawScene();">
+           <label>Сдвиг центра x₀ = <b id="lblCX">${circX0.toFixed(2)}</b></label>
+           <input type="range" min="-2.0" max="2.0" step="0.05" value="${circX0}"
+                  oninput="circX0=parseFloat(this.value); document.getElementById('lblCX').innerText=circX0.toFixed(2); drawScene();">`;
+            }
+            else if (mode === 'grid') {
+                controlsBox.innerHTML = `
+                <div><b>Тип сетки на плоскости ℂ:</b></div>
+                <label><input type="radio" name="gType" ${gridType === 'polar' ? 'checked' : ''} onchange="gridType='polar'; drawScene();"> Полярная (r = const, φ = const)</label>
+                <label><input type="radio" name="gType" ${gridType === 'cartesian' ? 'checked' : ''} onchange="gridType='cartesian'; drawScene();"> Декартова (x = const, y = const)</label>
+                <div style="margin-top:8px; font-size:12px; color:#546e7a;">Обратите внимание на сохранение прямых углов (90°) на сфере и поведение линий у полюса N(∞).</div>`;
+            }
+            else if (mode === 'image') {
+                controlsBox.innerHTML = `
+                <button class="action-btn" style="background:#e3f2fd; color:#0d47a1; border-color:#90caf9; margin-bottom:8px;"
+                        onclick="document.getElementById('imgUpload').click();">Загрузить своё фото</button>
+                <label>Размер на плоскости = <b id="lblIS">${imgSize.toFixed(2)}</b></label>
+                <input type="range" min="0.4" max="3.0" step="0.05" value="${imgSize}"
+                       oninput="imgSize=parseFloat(this.value); document.getElementById('lblIS').innerText=imgSize.toFixed(2); drawScene();">
+                <div style="margin-top:8px; font-size:12px; color:#546e7a;">Хватайте картинку мышкой прямо на плоскости и таскайте к полюсам!</div>`;
+            }
+         updateTheoryBox(); // обновляем теоретическую матчасть на нижнем холсте
+        }
+
+        /* =====================================================================
+        ОБНОВЛЕНИЕ МЕТОДИЧЕСКОГО ТЕКСТОВОГО ОКНА ПОД ХОЛСТОМ
+        ===================================================================== */
+        function updateTheoryBox() {
+            const box = document.getElementById('theoryBox');
+            if (!box) return;
+
+            if (mode === 'point') {
+                box.innerHTML = `<b>Стереографическая проекция:</b> устанавливает взаимно однозначное соответствие между расширенной комплексной плоскостью ℂ̄ = ℂ ∪ {∞} и сферой Римана S².<br> Луч из Северного полюса <b>N(∞)</b> через точку <b>z = x + iy</b> пересекает сферу в единственной точке <b>P(ξ, η, ζ)</b>. Южный полюс <b>S(0)</b> соответствует началу координат z = 0, а единичная окружность |z| = 1 отображается в экватор сферы.<br> Попробуйте увести точку далеко от центра — луч приблизится к горизонтали, а образ P устремится к полюсу <b>N(∞)</b>.`;
+            } else if (mode === 'series') {
+                box.innerHTML = `<b>Дискретные множества и метрика:</b> позволяет наблюдать образы произвольного набора точек на сфере Римана. Расстояние между образами P₁ и P₂ в ℝ³ задаёт <b>хордальную метрику</b>, расстояние между образами P₁ и P₂ по поверхности сферы задаёт <b>сферическую метрику</b> в которой даже удалённые друг от друга точки с большими модулями |z| оказываются сколь угодно близкими в окрестности Северного полюса <b>N(∞)</b>.`;
+            } else if (mode === 'curve') {
+                const curveNotes = {
+                    line: `<b>Прямая y = ax + b:</b> любая прямая на плоскости ℂ при стереографической проекции переходит в <b>окружность на сфере Римана, проходящую через Северный полюс N(∞)</b>. Закрепите несколько параллельных или пересекающихся прямых — их образы пересекутся в полюсе N(∞) под тем же углом (конформность в бесконечности).`,
+                    parabola: `<b>Парабола y = ax² + b:</b> обе ветви параболы уходят на бесконечность и замыкаются в Северном полюсе <b>N(∞)</b>, образуя на сфере замкнутую петлю с точкой возврата в полюсе.`,
+                    hyperbola: `<b>Гипербола y = a / x:</b> состоит из двух симметричных ветвей. На сфере Римана обе ветви дважды проходят через Северный полюс <b>N(∞)</b>, образуя самопересекающуюся сферическую кривую (восьмёрку) с узлом в бесконечности.`,
+                    sine: `<b>Синусоида y = a·sin(ωx):</b> неограниченно осциллирует вдоль действительной оси при x → ±∞. На сфере Римана её образ сжимается по амплитуде и <b>бесконечно осциллирует вдоль меридиана</b>, сгущаясь к Северному полюсу <b>N(∞)</b>.`,
+                    spiral: `<b>Спираль Архимеда r = a·φ:</b> равномерно раскручивается от начала координат (Южный полюс <b>S(0)</b>) и при φ → +∞ наматывается (делая бесконечное число оборотов) на Северный полюс <b>N(∞)</b>.`,
+                    logspiral: `<b>Логарифмическая спираль r = a·e^(bφ) (локсодрома):</b> пересекает все лучи из начала координат под постоянным углом. На сфере Римана она образует <b>локсодрому</b> — кривую, пересекающую все меридианы под одним углом и бесконечно закручивающуюся вокруг <b>обоих полюсов</b>: S(0) при φ → −∞ и N(∞) при φ → +∞.`,
+                    rose: `<b>Роза Гвидо Гранди r = a·cos(kφ):</b> ограниченная замкнутая кривая. В силу конформности стереографической проекции её сферический образ сохраняет число лепестков и углы пересечения в Южном полюсе <b>S(0)</b>.`,
+                    circle: `<b>Окружность (x − b)² + y² = a²:</b> фундаментальное свойство стереографической проекции — <b>любая окружность на плоскости ℂ переходит в окружность на сфере Римана</b>, не проходящую через Северный полюс N(∞).`
+                };
+                box.innerHTML = curveNotes[curveType] || '';
+            } else if (mode === 'circle') {
+                box.innerHTML = `<b>Круговое свойство стереографической проекции:</b> окружность |z − z₀| = R на комплексной плоскости всегда переходит в окружность на сфере Римана. При увеличении радиуса R (или сдвиге центра z₀) сферическая окружность приближается к Северному полюсу <b>N(∞)</b>. А если окружность на сфере проходит через северный полюс, её прообраз на плоскости вырождается в прямую.`;
+            } else if (mode === 'grid') {
+                box.innerHTML = `<b>Конформность координатных сеток:</b> ортогональные семейства линий на плоскости ℂ сохраняют прямые углы пересечения на сфере Римана. <b>Полярная сетка</b> (окружности |z| = r и лучи arg z = φ) переходит в сетку географических <b>параллелей и меридианов</b>. <b>Декартова сетка</b> (прямые x = const и y = const) переходит в два ортогональных пучка окружностей, касающихся друг друга в Северном полюсе <b>N(∞)</b>.`;
+            } else if (mode === 'image') {
+                box.innerHTML = `<b>Конформное отображение области:</b> иллюстрирует локальное сохранение углов и формы бесконечно малых фигур при стереографической проекции. Вблизи Южного полюса <b>S(0)</b> изображение переносится на сферу почти без искажений масштаба, а при приближении к бесконечности (к Северному полюсу <b>N(∞)</b>) сильно сжимается, оставаясь локально конформным.`;
+            }
+        }
+
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 1. Построение координатной сетки на комплексной плоскости C (ζ = 0)
+            // Цикл с шагом 0.5 проводит светло-серые линии от -2.5 до +2.5 вдоль обеих осей
+            for (let k = -2.5; k <= 2.5; k += 0.5) {
+                drawCurve3D(new Array({x: k, y: -2.5, z: 0}, {x: k, y: 2.5, z: 0}), '#eceff1', 1);
+                drawCurve3D(new Array({x: -2.5, y: k, z: 0}, {x: 2.5, y: k, z: 0}), '#eceff1', 1);
+            }
+            // 2. Построение трёх осей декартовой системы координат:
+            // вещественная ось Re z (ξ), мнимая ось Im z (η) и вертикальная ось ζ
+            drawAxis3D({x: -2.8, y: 0, z: 0}, {x: 2.8, y: 0, z: 0}, 'Re z  (ξ) ');
+            drawAxis3D({x: 0, y: -2.8, z: 0}, {x: 0, y: 2.8, z: 0}, 'Im z  (η)');
+            drawAxis3D({x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 1.37}, 'ζ');
+
+            const unitPlane = new Array();
+            for (let a = 0; a <= 72; a++) {
+                const t = (a / 72) * 2 * Math.PI;
+                unitPlane.push({x: Math.cos(t), y: Math.sin(t), z: 0});
+            }
+            drawCurve3D(unitPlane, '#90a4ae', 1.2, DASH);
+
+            // Полупрозрачная светло-голубая сфера
+            const centerScr = project3D({x: 0, y: 0, z: 0.5});
+            const rPix = 0.5 * SCALE;
+            const grad = ctx.createRadialGradient(
+                centerScr.sx, centerScr.sy, rPix * 0.02,
+                centerScr.sx, centerScr.sy, rPix
+            );
+            grad.addColorStop(0, 'rgba(245, 251, 255, 0.34)');
+            grad.addColorStop(0.83, 'rgba(186, 230, 253, 0.34)');
+            grad.addColorStop(1, 'rgba(56, 152, 220, 0.43)');
+            ctx.save();
+            ctx.fillStyle = grad;
+            ctx.strokeStyle = 'rgba(100, 181, 246, 0.55)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(centerScr.sx, centerScr.sy, rPix, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            //Рисование сферы Римана
+            const R = 0.5;
+            for (let lat = -60; lat <= 60; lat += 30) {
+                const phi = lat * Math.PI / 180;
+                const r = R * Math.cos(phi), z = 0.5 + R * Math.sin(phi);
+                const pts = new Array();
+                for (let a = 0; a <= 80; a++) {
+                    const t = (a / 80) * 2 * Math.PI;
+                    pts.push({x: r * Math.cos(t), y: r * Math.sin(t), z: z});
+                }
+                if (lat === 0) drawSphereCurve(pts, '#6488b4', '#b0c4de', 1.4);
+                else drawSphereCurve(pts, '#b0bec5', '#dce3e8', 1);
+            }
+            for (let lon = 0; lon < 180; lon += 30) {
+                const lam = lon * Math.PI / 180;
+                const pts = new Array();
+                for (let a = 0; a <= 80; a++) {
+                    const t = (a / 80) * 2 * Math.PI;
+                    pts.push({x: R * Math.cos(t) * Math.cos(lam), y: R * Math.cos(t) * Math.sin(lam), z: 0.5 + R * Math.sin(t)});
+                }
+                drawSphereCurve(pts, '#b0bec5', '#dce3e8', 1);
+            }
+
+            // Отрисовка объектов выбранного интерактивного режима
+            if (mode === 'point') {
+                // Режим 1: одиночная точка z, образ P и проекционный луч из N(∞)
+                drawProbePoint(zx, zy);
+
+            } else if (mode === 'series') {
+                // Режим 2: серия пользовательских точек на плоскости C и соединяющие дуги на сфере
+                const planePts3D = new Array();
+                pointSeries.forEach((pt, idx) => {
+                    const P = zToSphere(pt.x, pt.y);
+                    const pt3 = {x: pt.x, y: pt.y, z: 0};
+                    planePts3D.push(pt3);
+                    drawCurve3D(new Array(NORTH, pt3), 'rgba(255,112,67,0.35)', 1, DASH);
+
+                    const sZ = project3D(pt3), sP = project3D(P);
+                    ctx.fillStyle = '#e53935'; ctx.beginPath(); ctx.arc(sZ.sx, sZ.sy, 4.5, 0, 2 * Math.PI); ctx.fill();
+                    ctx.font = '12px Segoe UI'; ctx.fillText('z' + (idx + 1), sZ.sx + 6, sZ.sy + 3);
+                    ctx.fillStyle = '#1565c0'; ctx.beginPath(); ctx.arc(sP.sx, sP.sy, 4.5, 0, 2 * Math.PI); ctx.fill();
+                    ctx.fillText('P' + (idx + 1), sP.sx + 6, sP.sy - 4);
+                });
+
+                if (connectSeries && pointSeries.length > 1) {
+                    drawCurve3D(planePts3D, '#e53935', 1.8);
+                    const arcOnSphere = new Array();
+                    for (let i = 0; i < pointSeries.length - 1; i++) {
+                        const pA = pointSeries.at(i), pB = pointSeries.at(i + 1);
+                        for (let step = 0; step <= 30; step++) {
+                            const t = step / 30;
+                            arcOnSphere.push(zToSphere(pA.x + (pB.x - pA.x) * t, pA.y + (pB.y - pA.y) * t));
+                        }
+                    }
+                    drawSphereCurve(arcOnSphere, '#1565c0', '#90caf9', 2);
+                }
+                readout.innerHTML = `<span class="badge">Точек в серии: ${pointSeries.length}</span>` +
+                    `<span class="badge">Кликните по плоскости ℂ, чтобы добавить точку</span>`;
+
+                } else if (mode === 'curve') {
+                // Вспомогательная функция отрисовки одной кривой (на плоскости ℂ и на сфере Римана)
+                // Режим 3: семейства параметрических кривых и закреплённые графики
+                    const renderSingleCurve = (type, a, b, w, planeColor, sphereFrontColor, sphereBackColor) => {
+                    const isLogSpiral = (type === 'logspiral');
+                    const isRose = (type === 'rose');
+                    const tStart = (type === 'spiral' || isRose) ? 0 : (isLogSpiral ? -14 : -6.5); //начальное значение параметра t...
+                    const tEnd = (type === 'spiral') ? 16.0 : (isLogSpiral ? 14.0 : (isRose ? 8.0 : 6.5));   //конечное значение параметра t...
+                    const steps = 4000;
+                    const ranges = (type === 'hyperbola')
+                        ? new Array({a: -80, b: -0.001}, {a: 0.001, b: 80})
+                        : new Array({a: tStart, b: tEnd});
+
+                    ranges.forEach(rng => {
+                        const segPlane = new Array(), segSphere = new Array();
+                        for (let i = 0; i <= steps; i++) {
+                            const t = rng.a + (rng.b - rng.a) * (i / steps);
+                            const pt = evalCurve(t, type, a, b, w);
+                            if (Math.hypot(pt.x, pt.y) <= 8) {
+                                segPlane.push({x: pt.x, y: pt.y, z: 0});
+                            }
+                            segSphere.push(zToSphere(pt.x, pt.y));
+                        }
+                        drawCurve3D(segPlane, planeColor, 2);
+                        if (type === 'hyperbola') {
+                            segSphere.unshift(NORTH);
+                            segSphere.push(NORTH);
+                        }
+                        drawSphereCurve(segSphere, sphereFrontColor, sphereBackColor, 2.2);
+                    });
+
+                    // Замыкаем ветвь кривой через окрестность бесконечно удалённой точки N(∞)
+                    if (type !== 'spiral' && type !== 'logspiral' && !isRose && type !== 'circle') {
+                        const infBranch = new Array();
+                        for (let s = -40; s <= 40; s++) {
+                            const bigT = (s === 0) ? 100 : (2.6 / (s / 40));
+                            const pt = evalCurve(bigT, type, a, b, w);
+                            infBranch.push(zToSphere(pt.x, pt.y));
+                        }
+                        drawSphereCurve(infBranch, sphereFrontColor, sphereBackColor, 2);
+                    }
+                };
+
+                // 1. Сначала рисуем все ранее закреплённые прямые и кривые своими цветами
+                savedCurves.forEach(item => {
+                    renderSingleCurve(item.type, item.a, item.b, item.w, item.colors.plane, item.colors.front, item.colors.back);
+                });
+
+                // 2. Затем рисуем текущую активную кривую (которую сейчас крутим ползунками)
+                renderSingleCurve(curveType, paramA, paramB, paramW, '#00897b', '#1565c0', '#90caf9');
+
+                // 3. Рисуем бегущую контрольную точку z(t) и её образ P(t), если включена галочка
+                if (showCurveProbe) {
+                    const curPt = evalCurve(curveT);
+                    drawProbePoint(curPt.x, curPt.y);
+                }
+            } else if (mode === 'circle') {
+                const cPlane = new Array(), cSphere = new Array();
+                for (let i = 0; i <= 180; i++) {
+                    const a = (i / 180) * 2 * Math.PI;
+                    const x = circX0 + circR * Math.cos(a), y = circR * Math.sin(a);
+                    cPlane.push({x: x, y: y, z: 0});
+                    cSphere.push(zToSphere(x, y));
+                }
+                drawCurve3D(cPlane, '#00897b', 2);
+                drawSphereCurve(cSphere, '#1565c0', '#90caf9', 2.2);
+                drawProbePoint(circX0 + circR * Math.cos(circT), circR * Math.sin(circT));
+            } else if (mode === 'grid') {
+                if (gridType === 'polar') {
+                    // Концентрические окружности r = const
+                    const radii = new Array(0.35, 0.7, 1.0, 1.5, 2.2);
+                    radii.forEach(r => {
+                        const cPlane = new Array(), cSphere = new Array();
+                        for (let i = 0; i <= 120; i++) {
+                            const a = (i / 120) * 2 * Math.PI;
+                            const x = r * Math.cos(a), y = r * Math.sin(a);
+                            cPlane.push({x: x, y: y, z: 0});
+                            cSphere.push(zToSphere(x, y));
+                        }
+                        drawCurve3D(cPlane, '#00897b', 1.3);
+                        drawSphereCurve(cSphere, '#1565c0', '#90caf9', 1.5);
+                    });
+                    // Лучи phi = const
+                    for (let k = 0; k < 12; k++) {
+                        const a = (k / 12) * 2 * Math.PI;
+                        const rPlane = new Array(), rSphere = new Array();
+                        for (let i = 0; i <= 120; i++) {
+                            const r = (i / 120) * 2.5;
+                            const x = r * Math.cos(a), y = r * Math.sin(a);
+                            rPlane.push({x: x, y: y, z: 0});
+                            rSphere.push(zToSphere(x, y));
+                        }
+                        drawCurve3D(rPlane, '#00897b', 1.3);
+                        const rInf = new Array();
+                        for (let i = 0; i <= 120; i++) {
+                            const t = i / 120;
+                            const r = (t >= 0.995) ? 60 : (t / (1 - t));
+                            rInf.push(zToSphere(r * Math.cos(a), r * Math.sin(a)));
+                        }
+                        drawSphereCurve(rInf, '#1565c0', '#90caf9', 1.5);
+                    }
+                } else {
+                    // Декартова сетка x = const, y = const
+                    const vals = new Array(-2.0, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2.0);
+                    vals.forEach(c => {
+                        const vxPlane = new Array(), hyPlane = new Array();
+                        for (let i = 0; i <= 100; i++) {
+                            const u = -2.5 + 5.0 * (i / 100);
+                            vxPlane.push({x: c, y: u, z: 0});
+                            hyPlane.push({x: u, y: c, z: 0});
+                        }
+                        drawCurve3D(vxPlane, '#00897b', 1.3);
+                        drawCurve3D(hyPlane, '#00897b', 1.3);
+
+                        // Замкнутые окружности на сфере (проходят через N(∞))
+                        const vxSphere = new Array(), hySphere = new Array();
+                        for (let i = 0; i <= 200; i++) {
+                            const th = -Math.PI / 2 + Math.PI * (i / 200);
+                            const u = (Math.abs(Math.cos(th)) < 1e-4) ? 1e4 : Math.tan(th);
+                            vxSphere.push(zToSphere(c, u));
+                            hySphere.push(zToSphere(u, c));
+                        }
+                        drawSphereCurve(vxSphere, '#1565c0', '#90caf9', 1.5);
+                        drawSphereCurve(hySphere, '#1565c0', '#90caf9', 1.5);
+                    });
+                }
+
+            /* =====================================================================
+               ОТРИСОВКА РЕЖИМА 6: КОНФОРМНАЯ ПРОЕКЦИЯ КАРТИНКИ НА СФЕРУ РИМАНА
+               ===================================================================== */
+            } else if (mode === 'image') {
+                const N = IMG_RES;
+                const half = imgSize / 2;
+                const step = imgSize / N;
+
+                // 1. Предвычисляем сетку вершин (N+1) x (N+1) один раз на кадр вместо 4-кратного пересчёта в цикле
+                const planeGrid = new Array(N + 1);
+                const sphereGrid = new Array(N + 1);
+                for (let r = 0; r <= N; r++) {
+                    planeGrid[r] = new Array(N + 1);
+                    sphereGrid[r] = new Array(N + 1);
+                    const y = imgY + half - r * step;
+                    for (let c = 0; c <= N; c++) {
+                        const x = imgX - half + c * step;
+                        planeGrid[r][c] = project3D({x: x, y: y, z: 0});
+                        const sPt = zToSphere(x, y);
+                        const projS = project3D(sPt);
+                        // Вычисляем глубину точки на сфере относительно зрителя (front = true, если на передней полусфере)
+                        const y1 = -sPt.x * Math.cos(yaw) - sPt.y * Math.sin(yaw);
+                        const Zc = sPt.z - 0.5;
+                        projS.front = (-y1 * Math.cos(pitch) - Zc * Math.sin(pitch)) <= 0;
+                        sphereGrid[r][c] = projS;
+                    }
+                }
+
+                // 2. Рисуем картинку на комплексной плоскости C и собираем ячейки для сферы
+                const sphereQuads = new Array();
+                for (let i = 0; i < cachedImgCells.length; i++) {
+                    const cell = cachedImgCells[i];
+                    const r = cell.row, c = cell.col;
+
+                    // Четыре угла ячейки на плоскости C
+                    const p00 = planeGrid[r][c],     p10 = planeGrid[r][c + 1];
+                    const p11 = planeGrid[r + 1][c + 1], p01 = planeGrid[r + 1][c];
+
+                    ctx.fillStyle = cell.colorPlane;
+                    ctx.beginPath();
+                    ctx.moveTo(p00.sx, p00.sy); ctx.lineTo(p10.sx, p10.sy);
+                    ctx.lineTo(p11.sx, p11.sy); ctx.lineTo(p01.sx, p01.sy);
+                    ctx.fill();
+
+                    // Сохраняем ячейку для отрисовки на сфере (с разделением на переднюю и заднюю полусферы)
+                    const q00 = sphereGrid[r][c],     q10 = sphereGrid[r][c + 1];
+                    const q11 = sphereGrid[r + 1][c + 1], q01 = sphereGrid[r + 1][c];
+                    sphereQuads.push({
+                        q00, q10, q11, q01,
+                        front: q00.front,
+                        color: q00.front ? cell.colorFront : cell.colorBack
+                    });
+                }
+
+                // 3. Рисуем на сфере сначала задние ячейки, затем передние (правильный 3D-порядок слоёв!)
+                for (let pass = 0; pass < 2; pass++) {
+                    const drawFront = (pass === 1);
+                    for (let i = 0; i < sphereQuads.length; i++) {
+                        const sq = sphereQuads[i];
+                        if (sq.front !== drawFront) continue;
+                        ctx.fillStyle = sq.color;
+                        ctx.beginPath();
+                        ctx.moveTo(sq.q00.sx, sq.q00.sy); ctx.lineTo(sq.q10.sx, sq.q10.sy);
+                        ctx.lineTo(sq.q11.sx, sq.q11.sy); ctx.lineTo(sq.q01.sx, sq.q01.sy);
+                        ctx.fill();
+                    }
+                }
+
+                // Выводим внизу реальные координаты центра картинки на плоскости C
+                readout.innerHTML = `<span class="badge">Центр картинки: z₀ = ${imgX.toFixed(2)} ${imgY >= 0 ? '+' : '−'} ${Math.abs(imgY).toFixed(2)}i</span>` +
+                                    `<span class="badge">Сторона квадрата: ${imgSize.toFixed(2)}</span>`;
+            }
+
+
+
+            // Отрисовка полюсов сферы Римана: Южного S(0) и Северного N(∞)
+            const scrN = project3D(NORTH), scrS = project3D({x: 0, y: 0, z: 0});
+            ctx.fillStyle = '#37474f'; ctx.beginPath(); ctx.arc(scrS.sx, scrS.sy, 4.5, 0, 2 * Math.PI); ctx.fill();
+            ctx.font = 'bold 13px Segoe UI'; ctx.fillText('S (0)', scrS.sx + 8, scrS.sy + 14);
+            ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.arc(scrN.sx, scrN.sy, 5.5, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillText('N (∞)', scrN.sx + 8, scrN.sy - 6);
+        }
+
+        // Отрисовка контрольной точки z на плоскости, её сферического образа P, проекционного луча и вывод координат
+        function drawProbePoint(x, y) {
+            const ptZ = {x: x, y: y, z: 0};
+            const P = zToSphere(x, y);
+            const scrZ = project3D(ptZ), scrP = project3D(P);
+
+            // Проекционные отрезки из Северного полюса N(∞) к точкам z и P
+            drawCurve3D(new Array(NORTH, ptZ), '#ff7043', 1.6, DASH);
+            drawCurve3D(new Array(NORTH, P), '#ff7043', 1.6, DASH);
+
+            // Маркеры точек z (красный на плоскости) и P (синий на сфере)
+            ctx.fillStyle = '#e53935'; ctx.beginPath(); ctx.arc(scrZ.sx, scrZ.sy, 6.5, 0, 2 * Math.PI); ctx.fill();
+            ctx.font = 'bold 13px Segoe UI'; ctx.fillText('z', scrZ.sx + 9, scrZ.sy + 4);
+
+            ctx.fillStyle = '#1565c0'; ctx.beginPath(); ctx.arc(scrP.sx, scrP.sy, 6.5, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillText('P', scrP.sx + 9, scrP.sy - 6);
+
+            // Вывод алгебраической, показательной форм числа z и 3D-координат P в нижнюю панель
+            const mod = Math.hypot(x, y).toFixed(2);
+            const arg = (Math.atan2(y, x) * 180 / Math.PI).toFixed(0);
+            const zDisplay = (mode === 'point')
+                ? `<input type="number" step="0.1" value="${x.toFixed(2)}" onchange="zx=parseFloat(this.value)||0; drawScene();" style="width:58px; border:1px solid #90caf9; border-radius:4px; font-family:Consolas,monospace; text-align:right;"> + ` +
+                `<input type="number" step="0.1" value="${y.toFixed(2)}" onchange="zy=parseFloat(this.value)||0; drawScene();" style="width:58px; border:1px solid #90caf9; border-radius:4px; font-family:Consolas,monospace; text-align:right;">i`
+                : `${x.toFixed(2)} ${y >= 0 ? '+' : '-'} ${Math.abs(y).toFixed(2)}i`;
+
+            readout.innerHTML =
+                `<span class="badge">z = ${zDisplay}</span>` +
+                `<span class="badge">|z| = ${mod}, arg(z) = ${arg}°</span>` +
+                `<span class="badge">P = (${P.x.toFixed(2)}, ${P.y.toFixed(2)}, ${P.z.toFixed(2)})</span>`;
+
+        }
+
+        /* =====================================================================
+           ОБРАБОТКА ВЗАИМОДЕЙСТВИЯ С ПОЛЬЗОВАТЕЛЕМ (МЫШЬ, МАСШТАБ, ТЕМЫ)
+           ===================================================================== */
+        let dragMode = null, dragIndex = -1, lastX = 0, lastY = 0, moved = false;
+
+        // Определяет объект захвата при нажатии кнопки мыши (точка, кривая, картинка или вращение камеры)
+        canvas.addEventListener('pointerdown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            moved = false;
+            canvas.setPointerCapture(e.pointerId);
+
+            if (mode === 'point') {
+                const P = zToSphere(zx, zy);
+                const scrZ = project3D({x: zx, y: zy, z: 0}), scrP = project3D(P);
+                if (Math.hypot(mx - scrZ.sx, my - scrZ.sy) < 20) dragMode = 'z';
+                else if (Math.hypot(mx - scrP.sx, my - scrP.sy) < 20) dragMode = 'P';
+                else dragMode = 'camera';
+            } else if (mode === 'curve') {
+                const curPt = evalCurve(curveT);
+                const scrZ = project3D({x: curPt.x, y: curPt.y, z: 0});
+                if (Math.hypot(mx - scrZ.sx, my - scrZ.sy) < 24) dragMode = 'curvePt';
+                else dragMode = 'camera';
+            } else if (mode === 'series') {
+                dragIndex = -1;
+                pointSeries.forEach((pt, idx) => {
+                    const sZ = project3D({x: pt.x, y: pt.y, z: 0});
+                    if (Math.hypot(mx - sZ.sx, my - sZ.sy) < 18) dragIndex = idx;
+                });
+                dragMode = (dragIndex !== -1) ? 'seriesPt' : 'camera';
+            } else if (mode === 'circle') {
+                const cx = circX0 + circR * Math.cos(circT), cy = circR * Math.sin(circT);
+                const scrZ = project3D({x: cx, y: cy, z: 0});
+                dragMode = (Math.hypot(mx - scrZ.sx, my - scrZ.sy) < 24) ? 'circlePt' : 'camera';
+            }
+            else if (mode === 'image') {
+                const pt = screenToPlaneZ0(mx, my);
+                if (Math.abs(pt.x - imgX) <= imgSize * 0.6 && Math.abs(pt.y - imgY) <= imgSize * 0.6) {
+                    dragMode = 'imgDrag';
+                } else {
+                    dragMode = 'camera';
+                }
+            }
+            else {
+                dragMode = 'camera';
+            }
+            lastX = e.clientX; lastY = e.clientY;
+        });
+
+        // Завершает перетаскивание; в режиме серии точек добавляет новую точку при коротком клике без сдвига мыши
+        window.addEventListener('pointerup', e => {
+            if (dragMode === 'camera' && !moved && mode === 'series') {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+                if (mx >= 0 && mx <= canvas.width && my >= 0 && my <= canvas.height) {
+                    const pt = screenToPlaneZ0(mx, my);
+                    if (Math.abs(pt.x) <= 2.6 && Math.abs(pt.y) <= 2.6) {
+                        pointSeries.push({x: pt.x, y: pt.y});
+                        drawScene();
+                    }
+                }
+            }
+            dragMode = null;
+        });
+
+        // Обрабатывает перемещение мыши при зажатой кнопке: вращает камеру или двигает захваченный объект
+        window.addEventListener('pointermove', e => {
+            if (!dragMode) return;
+            if (Math.hypot(e.clientX - lastX, e.clientY - lastY) > 3) moved = true; // Фиксируем сдвиг, чтобы отличить перетаскивание от клика
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+
+            if (dragMode === 'camera') {
+                // Вращение камеры вокруг сферы (yaw — влево-вправо, pitch — вверх-вниз)
+                yaw -= (e.clientX - lastX) * 0.008;
+                pitch = Math.max(-1.7, Math.min(1.7, pitch + (e.clientY - lastY) * 0.008));
+            } else if (dragMode === 'z') {
+                // Перемещение контрольной точки z по комплексной плоскости C
+                const pt = screenToPlaneZ0(mx, my);
+                zx = Math.max(-25, Math.min(25, pt.x));
+                zy = Math.max(-25, Math.min(25, pt.y));
+            } else if (dragMode === 'P') {
+                // Переводим экранные координаты мыши (mx, my) в локальные координаты камеры (x1, y2)
+                const x1 = (mx - canvas.width / 2) / SCALE;
+                const y2 = (my - canvas.height / 2) / SCALE;
+
+                // Решаем уравнение сферы x1^2 + y1^2 + (Zc)^2 = 0.25 (радиус сферы R = 0.5)
+                // с учётом того, что y2 = y1 * sin(pitch) - Zc * cos(pitch)
+                const rSq = x1 * x1 + y2 * y2;
+                const R = 0.5;
+                // Если курсор наведён на саму сферу — берём переднюю полусферу, если вышел за край — проецируем на контур
+                const depth = (rSq < R * R) ? Math.sqrt(R * R - rSq) : 0;
+                const scaleEdge = (rSq > R * R) ? (R / Math.sqrt(rSq)) : 1;
+
+                const x1c = x1 * scaleEdge;
+                const y2c = y2 * scaleEdge;
+
+                // Восстанавливаем повернутые координаты (y1, Zc) из наклона камеры pitch
+                const y1 = y2c * Math.sin(pitch) + depth * Math.cos(pitch);
+                const Zc = -y2c * Math.cos(pitch) + depth * Math.sin(pitch);
+
+                // Обратный поворот на угол yaw, чтобы получить (X, Y, Z) в мировой системе координат
+                const X = x1c * Math.sin(yaw) - y1 * Math.cos(yaw);
+                const Y = -x1c * Math.cos(yaw) - y1 * Math.sin(yaw);
+                const Z = Math.min(0.985, Math.max(0.0, Zc + 0.45)); // Не даём уйти в самый полюс Z=1 (бесконечность)
+
+                const zNew = sphereToZ(X, Y, Z);
+                zx = Math.max(-25, Math.min(25, zNew.x));
+                zy = Math.max(-25, Math.min(25, zNew.y));
+            } else if (dragMode === 'curvePt') {
+                // Поиск ближайшего значения параметра t на активной кривой при перетаскивании точки z мышью
+                const pt = screenToPlaneZ0(mx, my);
+                const tMin = (curveType === 'spiral') ? 0 : -8;
+                const tMax = (curveType === 'spiral') ? 4.0 : 8;
+                let bestT = curveT, bestDist = 1e9;
+                for (let i = 0; i <= 200; i++) {
+                    const tCand = tMin + (tMax - tMin) * (i / 200);
+                    const cPt = evalCurve(tCand);
+                    const d = Math.hypot(cPt.x - pt.x, cPt.y - pt.y);
+                    if (d < bestDist) {bestDist = d; bestT = tCand;}
+                }
+                curveT = bestT;
+                const sliderT = document.getElementById('lblT');
+                if (sliderT) sliderT.innerText = curveT.toFixed(2);
+            } else if (dragMode === 'seriesPt' && dragIndex !== -1) {
+                // Перемещение выбранной точки из серии по плоскости C
+                const pt = screenToPlaneZ0(mx, my);
+                pointSeries.at(dragIndex).x = Math.max(-25, Math.min(25, pt.x));
+                pointSeries.at(dragIndex).y = Math.max(-25, Math.min(25, pt.y));
+            } else if (dragMode === 'circlePt') {
+                // Вращение контрольной точки вдоль окружности |z - z₀| = R
+                const pt = screenToPlaneZ0(mx, my);
+                circT = Math.atan2(pt.y, pt.x - circX0);
+            }
+            else if (dragMode === 'imgDrag') {
+                // Перемещение проецируемой картинки по комплексной плоскости C
+                const pt = screenToPlaneZ0(mx, my);
+                imgX = Math.max(-25, Math.min(25, pt.x));
+                imgY = Math.max(-25, Math.min(25, pt.y));
+            }
+
+            lastX = e.clientX; lastY = e.clientY;
+            drawScene();
+        });
+
+        // Масштабирование 3D-сцены колёсиком мыши с блокировкой прокрутки страницы
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = (e.deltaY < 0) ? 1.1 : 0.9;
+            SCALE = Math.max(90, Math.min(520, SCALE * factor));
+            drawScene();
+        }, {passive: false});
+
+                // Масштабирование 3D-сцены двумя пальцами (pinch-to-zoom) на сенсорных экранах
+        let lastPinchDist = null;
+        canvas.addEventListener('touchmove', e => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (lastPinchDist !== null) {
+                    const factor = dist / lastPinchDist;
+                    SCALE = Math.max(90, Math.min(520, SCALE * factor));
+                    drawScene();
+                }
+                lastPinchDist = dist;
+            }
+        }, {passive: false});
+
+        canvas.addEventListener('touchend', () => {
+            lastPinchDist = null;
+        });
+
+
+        // Первичная инициализация панели управления, методических пояснений и отрисовка сцены
+        updateControlsUI();
+        drawScene();
+        // При загрузке проверяем: если пользователь не выбирал тему вручную, смотрим настройки его системы
+        const savedTheme = localStorage.getItem('riemann_theme');
+        const systemIsLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+
+        if (savedTheme === 'light' || (!savedTheme && systemIsLight)) {
+            document.body.classList.add('light-theme');
+        }
+
+        // Ручное переключение темы по кнопке
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light-theme');
+            localStorage.setItem('riemann_theme', isLight ? 'light' : 'dark');
+        }
+
+//  ======================================================================
+//    Генерация иконки Сферы Римана (PNG) в стиле главной сферы на холсте
+//  ======================================================================
+(function createSphereFavicon() {
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 64;
+    const g = c.getContext('2d');
+
+    const R = 28;
+    const cx = 32, cy = 33;
+    const tilt = 0.25; // Небольшой наклон, как у большой сферы на холсте
+
+    // Светлый блик строго посередине и мягкий голубой градиент к краям
+    const grad = g.createRadialGradient(cx, cy, 2, cx, cy, R);
+    grad.addColorStop(0, '#f4fbff');
+    grad.addColorStop(0.6, '#b3e5fc');
+    grad.addColorStop(1, '#29b6f6');
+
+    g.beginPath();
+    g.arc(cx, cy, R, 0, Math.PI * 2);
+    g.fillStyle = grad;
+    g.fill();
+    g.strokeStyle = '#0288d1';
+    g.lineWidth = 1.5;
+    g.stroke();
+
+    // 3D-проекция точки на сфере (широта phi, долгота lam)
+    function proj(phi, lam) {
+        const x = R * Math.cos(phi) * Math.sin(lam);
+        const y0 = R * Math.sin(phi);
+        const z0 = R * Math.cos(phi) * Math.cos(lam);
+        const y = y0 * Math.cos(tilt) - z0 * Math.sin(tilt);
+        const z = y0 * Math.sin(tilt) + z0 * Math.cos(tilt);
+        return { x: cx + x, y: cy - y, visible: z >= 0 };
+    }
+
+    // Вспомогательная отрисовка передней дуги
+    function drawFrontArc(points) {
+        g.beginPath();
+        let started = false;
+        points.forEach(p => {
+            if (p.visible) {
+                if (!started) { g.moveTo(p.x, p.y); started = true; }
+                else g.lineTo(p.x, p.y);
+            } else {
+                started = false;
+            }
+        });
+        g.stroke();
+    }
+
+    // 1. Две параллели (северная и южная)
+    g.strokeStyle = 'rgba(2, 119, 189, 0.45)';
+    g.lineWidth = 1.2;
+    [-0.52, 0.52].forEach(phi => {
+        const pts = [];
+        for (let lam = -Math.PI; lam <= Math.PI; lam += 0.08) pts.push(proj(phi, lam));
+        drawFrontArc(pts);
+    });
+
+    // 2. Экватор (чуть ярче, как на главной сфере)
+    g.strokeStyle = 'rgba(2, 119, 189, 0.85)';
+    g.lineWidth = 1.6;
+    const eqPts = [];
+    for (let lam = -Math.PI; lam <= Math.PI; lam += 0.08) eqPts.push(proj(0, lam));
+    drawFrontArc(eqPts);
+
+    // 3. Два меридиана (правый сдвинут левее)
+    g.strokeStyle = 'rgba(2, 119, 189, 0.45)';
+    g.lineWidth = 1.2;
+    [-0.45, 0.55].forEach(lam => {
+        const pts = [];
+        for (let phi = -Math.PI / 2; phi <= Math.PI / 2; phi += 0.08) pts.push(proj(phi, lam));
+        drawFrontArc(pts);
+    });
+
+    // 4. Аккуратная маленькая красная точка Северного полюса N(∞)
+    const north = proj(Math.PI / 2, 0);
+    g.beginPath();
+    g.arc(north.x, north.y, 3.2, 0, Math.PI * 2);
+    g.fillStyle = '#e53935';
+    g.fill();
+
+    document.getElementById('favicon').href = c.toDataURL('image/png');
+})();
+
+    </script>
+</body>
+
+</html>
